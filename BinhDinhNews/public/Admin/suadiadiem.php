@@ -1,141 +1,129 @@
 <?php
-    require "../../app/controller/loadsession.php";
-    if ($_SESSION['role'] < 1) {
-        header("Location: ./firewall.php");
-        exit();
+    include $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/model/DiaDiemDLDAO.php";
+    $ddDAO = new DiaDiemDAO();
+    $iddiadiem = $_GET["iddiadiem"];
+    $result = $ddDAO->get_tung_DiaDiem($iddiadiem);
+    if (mysqli_num_rows($result) > 0) {
+        $row = mysqli_fetch_array($result, MYSQLI_ASSOC);
+        $tendd = $row['TenDiaDiem'];
+        $tacgiaid = $row['AuthorID'];
     }
-    if ($_SESSION['role'] == 1) {
-        $status = 0;
-    }
-
-    if ($_SESSION['role'] == 2) {
-        $status = 1;
-    }
-
-    require_once("../../app/model/DiaDiemDLDAO.php");
-    require_once("../../app/model/dulichDAO.php");
-
-    $dddao = new DiaDiemDAO();
-    $dlDAO = new dulichDAO();
-
-    if (!isset($_GET['iddiadiem'])) {
-        die("Thiếu ID địa điểm.");
-    }
-
-    $iddiadiem = $_GET['iddiadiem'];
-    $result = $dddao->get_tung_DiaDiem($iddiadiem);
-    $row_diaDiem = mysqli_fetch_array($result);
     mysqli_free_result($result);
-
-    if (!$row_diaDiem) {
-        die("Không tìm thấy địa điểm.");
-    }
-
-    // Đọc mô tả hiện có
-    $txtPath = "../../app/dulich_data/" . $iddiadiem . ".txt";
-    if (file_exists($txtPath)) {
-        $mota_cu = file_get_contents($txtPath);
-    } else {
-        $mota_Cu = "";
-    }
+    
 
 
+?>
 
-    // Xử lý khi nhấn "Lưu"
-    if (isset($_POST['luu'])) {
-        $ten = $_POST['tendiadiem'];
-        $diachi = $_POST['diachi'];
-        $loaihinhid = $_POST['loaihinhid'];
-        $mota_moi = $_POST['mota'];
-        $hinhanh = $row_diaDiem['HinhAnh'];//múc tên hình ảnh từ database
-       
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="/BinhDinhNews/public/css/reset.css">
+  <link rel="stylesheet" href="/BinhDinhNews/public/css/footer-style.css">
+  <link rel="stylesheet" href="/BinhDinhNews/public/css/header-style.css">
+  <link rel="stylesheet" href="/BinhDinhNews/public/css/DiaDiemDL.css">
+  <link rel="stylesheet" href="/BinhDinhNews/public/css/rightmenu-style.css">
+  <script src="https://kit.fontawesome.com/8f5e4d2946.js" crossorigin="anonymous"></script>
+  <title>
+    <?php 
+    	  if (isset($tendd)) {
+            echo $tendd;
+        } 
+        else {
+            echo "Không tìm thấy";
+    } 
+    ?>
 
+  </title>
 
-        if (!empty($_FILES['up_hinhanh_moi']['name'])) {
-            
-            $anh_moi = $_FILES['up_hinhanh_moi']['name'];
+  <link rel="icon" href="./images/logo.webp" type="image/x-icon">
+</head>
+<?php include $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/views/partials/header.php"; ?>
 
-            $uploadDir = "../../public/images/imgDuLich/" . $iddiadiem;
-            
-            $path = $uploadDir . "/" . basename($anh_moi);
-            unlink($uploadDir. "/" . $hinhanh);
-            move_uploaded_file($_FILES['up_hinhanh_moi']['tmp_name'], $path);
-            //đẩy dữ liệu lên lại databasse
-            $dddao->capnhat_diadiem($iddiadiem, $status, $ten, $diachi, $loaihinhid, $anh_moi);
+<body>
 
-        }
-        else{
-            $dddao->capnhat_diadiem($iddiadiem, $status, $ten, $diachi, $loaihinhid, $hinhanh);
-        }
+  <div class="container-ctDiaDiem">
+    <div class="container-left"> </div>
+    <div class="main-container">
+     
+	 <?php
+
+      require_once $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/model/DiaDiemDLDAO.php";
+      $ddDAO = new DiaDiemDAO();
+      $result = $ddDAO->get_tung_DiaDiem($iddiadiem);
+
+      // kiểm tra trong database có tồn tại địa điểm với id đưa vào hay không
+      if (mysqli_num_rows($result) > 0) {
+          
+        // vì có 1 dòng nên không cần lặp bằng while	  
+	      $rawData = mysqli_fetch_array($result);
+        
+        //*************lấy tiêu đề từ database, ảnh , địa điểm từ database**************
+        // lấy tiêu đề
+        echo "<h1> " . $rawData["TenDiaDiem"] . "</h1>";
 
 
         
-        // Ghi lại mô tả vô file txt
+	    
+  	    //hiện thị ảnh
+  	    echo '<img src="/BinhDinhNews/public/images/imgDuLich/' . $rawData["DiaDiemID"] . "/" . $rawData["HinhAnh"] . '" alt="' .$rawData['HinhAnh']. '" >';     
+         
+        // chữ giới thiệu
+        echo "<u> <h2> Giới thiệu: </h2> </u>";
 
-        file_put_contents($txtPath, $mota_moi);
-        header("Location: dsdiadiem.php");
-        exit();
-    }
-    
-?>
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>Sửa địa điểm</title>
-    <link rel="stylesheet" href="../css/reset.css">
-    <link rel="stylesheet" href="../css/menu-admin.css">
-    <link rel="stylesheet" href="../css/suadiadiem.css">
-</head>
-<body>
-<div class="main-container">
-    <div class="left-container">
-        <?php include "../../app/views/left/menu-admin.php"; ?>
+        // hiện chữ địa điểm và địa điểm múc từ databasse
+        echo "<h3>" 
+                  . "<img src='https://img.icons8.com/?size=100&id=Udrc3LA8OPbn&format=png&color=000000'>" . "<b> Địa chỉ: " .$rawData["DiaChi"]. "</b>" . 
+              "</h3>";
+				  
+       //*************************đọc nội dung từ file text **************************
+       // đường dẫn đến file mô tả địa điểm.txt
+        $path = $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/dulich_data/" .$iddiadiem. ".txt";
+        
+        $f = fopen($path , "r") or die("<h1>Không tìm thấy bài báo</h1>"); 
+        
+
+        while (!feof($f)) {
+		  
+              $row = fgets($f);
+			        //vÌ cuối dòng không cÓ "\n" nên php sẽ tính mỗi dòng là 1 đoạn luôn             
+
+              // Xóa các khoảng trắng  2 hai bên của dòng
+			        //vd: trim(" hello ") , kq là "hello"
+              $row = trim($row);  
+
+              // Duyệt qua tất cả các dòng còn lại trong file                 
+        			//vÌ cuối dòng khÔng cÓ "\n" ở cuối mỗi dòng =>  nên php sẽ tính mỗi dòng là 1 đoạn luôn
+        			echo "<p>" . $row . "</p>";
+        }
+
+          fclose($f);
+      }
+      else {
+          echo "<h1> <b> Không có địa điểm nào với id này" .$iddiadiem. "</b> </h1>";
+      }
+
+        
+        require_once $_SERVER['DOCUMENT_ROOT']. ('/BinhDinhNews/app/model/userDAO.php');
+        $authorDAO = new UserDAO();
+        $dataAuthor = $authorDAO->getAuthorInfo($tacgiaid);
+
+        if(!empty($dataAuthor['Alias'])){
+           echo "<i> <b> <h3> Tác giả: ".$dataAuthor['Alias']." <h3> </b></i>";
+        }
+        else {
+            echo "<i> <b> <h3> Tác giả: ".$dataAuthor['UserName']." <h3> </b></i>";
+        }
+
+	   ?>
     </div>
-    <div class="right-container">
-        <div class="form-container">
-            <h1>Sửa địa điểm du lịch</h1>
-
-            <form method="POST" enctype="multipart/form-data">
-                <input type="text" name="tendiadiem" value="<?php echo $row_diaDiem['TenDiaDiem']; ?>" required>
-                <input type="text" name="diachi" value="<?php echo $row_diaDiem['DiaChi']; ?>" required>
-                
-                <!-- chọn loại hình id -->
-                <select name="loaihinhid" required>
-                    <?php
-                        
-                        $result = $dlDAO->get_tatca_loaihinh();
-                        while ($row = mysqli_fetch_array($result)) {
-                             
-                            $selected = '';
-                            // Nếu LoaiHinhID của dòng hiện tại trong danh sách loại hình du lịch)
-                            //selected là khi nó trùng với giá trị LoaiHinhID của địa điểm đang được hiển thị
-                            
-                            if ($row['LoaiHinhID'] == $row_diaDiem['LoaiHinhID']) {
-                                $selected = 'selected';
-                            }
-
-                            echo ' <option value=" '. $row['LoaiHinhID'] . '"   '. $selected. ' > '. $row['TenLoaiHinh'] .' </option> ';
-                        }
-
-                        // giải phóng bộ nhớ mà MySQLi đã sử dụng để lưu kết quả truy vấn
-                        mysqli_free_result($result);
-                        // $result là một "bộ lưu trữ" dữ liệu trả về từ truy vấn.
-                    ?>
-                </select>
-
-                <div class="up_anh">
-                    <label>Chọn ảnh mới (nếu muốn):</label>
-                    <input type="file" name="up_hinhanh_moi">
-                </div>
-
-                <textarea name="mota" rows="8" required> <?php echo $mota_cu ?> </textarea>
-
-                <button type="submit" name="luu">Lưu thay đổi</button>
-            </form>
-
-        </div>
+    <div class="container-right">
+      <?php include $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/views/right/homepage.php"; ?>
     </div>
-</div>
+
+  </div>
+
 </body>
-</html>
+
+
+<?php include $_SERVER['DOCUMENT_ROOT']. "/BinhDinhNews/app/views/partials/footer.php";
+?>
